@@ -24,13 +24,42 @@ const DEFAULT_AUDIENCE: TargetAudience = {
   goals: "解决当下的焦虑，寻找提效黑科技，探索 AI 带来的新可能性（副业/转型）。"
 };
 
+const DEFAULT_SETTINGS: LLMSettings = {
+    activeProvider: 'gemini',
+    configs: {
+        gemini: {
+            provider: 'gemini', enabled: true, 
+            apiKey: process.env.API_KEY || '', 
+            baseUrl: '', 
+            modelName: 'gemini-2.5-flash'
+        },
+        deepseek: {
+            provider: 'deepseek', enabled: true,
+            apiKey: '',
+            baseUrl: 'https://api.deepseek.com',
+            modelName: 'deepseek-chat'
+        },
+        qianwen: {
+            provider: 'qianwen', enabled: true,
+            apiKey: '',
+            baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+            modelName: 'qwen-plus'
+        },
+        openai: {
+            provider: 'openai', enabled: true,
+            apiKey: '',
+            baseUrl: 'https://api.openai.com/v1',
+            modelName: 'gpt-4o'
+        }
+    }
+};
+
 // --- Safe Storage Helper ---
-// Prevents "Access to storage is not allowed" errors in restricted environments (e.g. Vercel, iframes, incognito)
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
     try {
       if (typeof window === 'undefined') return null;
-      // Accessing window.localStorage property itself can throw SecurityError
+      // Defensive property access
       const storage = window.localStorage;
       return storage ? storage.getItem(key) : null;
     } catch (e) {
@@ -58,87 +87,55 @@ const App: React.FC = () => {
   const [formKey, setFormKey] = useState(0); 
   const [editorKey, setEditorKey] = useState(0);
   
-  // LLM Settings with persistence
-  const [llmSettings, setLlmSettings] = useState<LLMSettings>(() => {
-      const saved = safeLocalStorage.getItem('inkflow_settings');
-      if (saved) {
-          try {
-              return JSON.parse(saved);
-          } catch (e) { console.error("Failed to parse settings", e); }
-      }
-      // Defaults
-      return {
-          activeProvider: 'gemini',
-          configs: {
-              gemini: {
-                  provider: 'gemini', enabled: true, 
-                  apiKey: process.env.API_KEY || '', 
-                  baseUrl: '', 
-                  modelName: 'gemini-2.5-flash'
-              },
-              deepseek: {
-                  provider: 'deepseek', enabled: true,
-                  apiKey: '',
-                  baseUrl: 'https://api.deepseek.com',
-                  modelName: 'deepseek-chat'
-              },
-              qianwen: {
-                  provider: 'qianwen', enabled: true,
-                  apiKey: '',
-                  baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-                  modelName: 'qwen-plus'
-              },
-              openai: {
-                  provider: 'openai', enabled: true,
-                  apiKey: '',
-                  baseUrl: 'https://api.openai.com/v1',
-                  modelName: 'gpt-4o'
-              }
-          }
-      };
-  });
+  // 1. Initialize with Defaults (Prevents Crash on Render)
+  const [llmSettings, setLlmSettings] = useState<LLMSettings>(DEFAULT_SETTINGS);
+  const [persona, setPersona] = useState<PersonaConfig>(DEFAULT_PERSONA);
+  const [audience, setAudience] = useState<TargetAudience>(DEFAULT_AUDIENCE);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // Save settings on change
+  // 2. Hydrate from Storage (Runs after Mount, safely caught)
   useEffect(() => {
-      safeLocalStorage.setItem('inkflow_settings', JSON.stringify(llmSettings));
-  }, [llmSettings]);
+    try {
+        const savedSettings = safeLocalStorage.getItem('inkflow_settings');
+        if (savedSettings) setLlmSettings(JSON.parse(savedSettings));
 
-  // BYOK Safety Check: Auto-open settings if key is missing
+        const savedPersona = safeLocalStorage.getItem('inkflow_persona');
+        if (savedPersona) setPersona(JSON.parse(savedPersona));
+
+        const savedAudience = safeLocalStorage.getItem('inkflow_audience');
+        if (savedAudience) setAudience(JSON.parse(savedAudience));
+    } catch (e) {
+        console.error("Failed to hydrate state from storage", e);
+    } finally {
+        setIsLoaded(true);
+    }
+  }, []);
+
+  // 3. Persist Changes
   useEffect(() => {
-      // Guideline: Gemini uses process.env.API_KEY, do not ask user.
+      if (isLoaded) safeLocalStorage.setItem('inkflow_settings', JSON.stringify(llmSettings));
+  }, [llmSettings, isLoaded]);
+
+  useEffect(() => {
+      if (isLoaded) safeLocalStorage.setItem('inkflow_persona', JSON.stringify(persona));
+  }, [persona, isLoaded]);
+
+  useEffect(() => {
+      if (isLoaded) safeLocalStorage.setItem('inkflow_audience', JSON.stringify(audience));
+  }, [audience, isLoaded]);
+
+
+  // BYOK Safety Check: Auto-open settings if key is missing (Only after load)
+  useEffect(() => {
+      if (!isLoaded) return;
       if (llmSettings.activeProvider === 'gemini') return;
 
       const activeConfig = llmSettings.configs[llmSettings.activeProvider];
-      // Check if key is empty. Note: process.env.API_KEY might be baked in during build, 
-      // but if user deploys cleanly, it might be empty.
       if (!activeConfig.apiKey) {
-          // A small timeout ensures UI is ready
           const timer = setTimeout(() => setShowSettings(true), 500);
           return () => clearTimeout(timer);
       }
-  }, [llmSettings.activeProvider]);
-
-  // Persona & Audience Defaults with Persistence
-  const [persona, setPersona] = useState<PersonaConfig>(() => {
-    const saved = safeLocalStorage.getItem('inkflow_persona');
-    if (saved) return JSON.parse(saved);
-    return DEFAULT_PERSONA;
-  });
-
-  const [audience, setAudience] = useState<TargetAudience>(() => {
-    const saved = safeLocalStorage.getItem('inkflow_audience');
-    if (saved) return JSON.parse(saved);
-    return DEFAULT_AUDIENCE;
-  });
-
-  // Save Persona/Audience on change
-  useEffect(() => {
-    safeLocalStorage.setItem('inkflow_persona', JSON.stringify(persona));
-  }, [persona]);
-
-  useEffect(() => {
-    safeLocalStorage.setItem('inkflow_audience', JSON.stringify(audience));
-  }, [audience]);
+  }, [llmSettings.activeProvider, isLoaded]);
 
 
   // Content Input
@@ -161,11 +158,9 @@ const App: React.FC = () => {
       return;
     }
 
-    // Double check key before generating
     const isGemini = llmSettings.activeProvider === 'gemini';
     const currentKey = llmSettings.configs[llmSettings.activeProvider].apiKey;
     
-    // Guideline: Skip key check for Gemini as it uses process.env.API_KEY (assumed valid)
     if (!isGemini && !currentKey) {
         setShowSettings(true);
         setErrorMsg("Please enter your API Key in Settings to proceed.");
@@ -174,8 +169,6 @@ const App: React.FC = () => {
 
     setErrorMsg("");
     setStatus(AppStatus.GENERATING);
-    
-    // Ensure we are on the generate tab
     setActiveTab('generate');
 
     try {
@@ -190,10 +183,9 @@ const App: React.FC = () => {
       setGeneratedContent(result);
       setStatus(AppStatus.SUCCESS);
 
-      // Auto-save to history (IndexedDB)
       await saveHistoryItem({
         sourceText,
-        images: images, // Save images
+        images: images, 
         generatedContent: result,
         personaName: persona.name,
         customInstructions,
@@ -214,43 +206,39 @@ const App: React.FC = () => {
     setGeneratedContent(item.generatedContent);
     setCustomInstructions(item.customInstructions);
     
-    // Restore Images:
-    // The stored images have base64 data but invalid/expired previewUrls.
-    // We use the base64 data as the source for the preview.
     const restoredImages = (item.images || []).map(img => ({
         ...img,
-        file: null, // File handle is lost in DB but base64 persists
-        previewUrl: img.base64 // Use base64 as valid src
+        file: null,
+        previewUrl: img.base64 
     }));
     
     setImages(restoredImages);
-    setEditorKey(prev => prev + 1); // Force content input to remount and accept new state
+    setEditorKey(prev => prev + 1);
     setActiveTab('generate');
   };
 
   const handleResetDefaults = () => {
-    // Immediate Synchronous Reset (No window.confirm blocking)
-    
-    // 1. Create deep copies
     const newPersona = JSON.parse(JSON.stringify(DEFAULT_PERSONA));
     const newAudience = JSON.parse(JSON.stringify(DEFAULT_AUDIENCE));
     
-    // 2. Update State
     setPersona(newPersona);
     setAudience(newAudience);
 
-    // 3. Force LocalStorage update immediately
+    // Update storage directly as well
     safeLocalStorage.setItem('inkflow_persona', JSON.stringify(newPersona));
     safeLocalStorage.setItem('inkflow_audience', JSON.stringify(newAudience));
     
-    // 4. Force Remount of PersonaPanel
     setFormKey(prev => prev + 1);
   };
+
+  if (!isLoaded) {
+      // Optional: Render a loading skeleton or just the default app state
+      // Rendering app state immediately is usually better for perceived performance
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans">
       
-      {/* Settings Modal */}
       <SettingsModal 
         isOpen={showSettings} 
         onClose={() => setShowSettings(false)} 
@@ -258,7 +246,6 @@ const App: React.FC = () => {
         onSave={setLlmSettings}
       />
 
-      {/* Header with Navigation - Increased Z-Index for stacking context */}
       <header className="bg-white border-b border-slate-200 h-16 shrink-0 flex items-center justify-between px-6 z-30 shadow-sm sticky top-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-indigo-200 shadow-lg">
@@ -269,7 +256,6 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Tab Navigation */}
         <nav className="flex bg-slate-100 p-1 rounded-lg">
             <button
                 onClick={() => setActiveTab('generate')}
@@ -306,7 +292,6 @@ const App: React.FC = () => {
             </button>
         </nav>
         
-        {/* Status & Settings */}
         <div className="w-64 flex justify-end items-center gap-4">
              {status === AppStatus.ERROR && <span className="text-red-500 text-sm font-medium animate-pulse truncate" title={errorMsg}>{errorMsg}</span>}
              
@@ -320,16 +305,11 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Content Area */}
       <main className="flex-1 w-full max-w-[1280px] mx-auto p-6">
         
-        {/* TAB: GENERATE */}
         {activeTab === 'generate' && (
             <div className="flex flex-col gap-8">
-                
-                {/* Top Section: Editor (Left) + Controls (Right) */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-auto">
-                    {/* Source Editor - Fixed heights to ensure stability */}
                     <div className="lg:col-span-8 h-[500px] lg:h-[600px]">
                         <ContentInput 
                             key={editorKey}
@@ -340,11 +320,9 @@ const App: React.FC = () => {
                         />
                     </div>
                     
-                    {/* Controls Panel - Fixed heights to match Editor */}
                     <div className="lg:col-span-4 h-[500px] lg:h-[600px] flex flex-col">
                         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm h-full flex flex-col">
                             
-                            {/* Current Model Indicator */}
                             <div className="mb-4 p-2 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
                                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Model</span>
                                 <span className="text-xs font-bold text-indigo-600 flex items-center gap-1">
@@ -390,7 +368,6 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Bottom Section: Result - Natural Height */}
                 <div className="w-full pb-20">
                     <ResultView 
                         content={generatedContent} 
@@ -401,7 +378,6 @@ const App: React.FC = () => {
             </div>
         )}
 
-        {/* TAB: PERSONA */}
         {activeTab === 'persona' && (
             <div className="max-w-4xl mx-auto pb-20">
                 <div className="mb-6">
@@ -419,7 +395,6 @@ const App: React.FC = () => {
             </div>
         )}
 
-        {/* TAB: HISTORY */}
         {activeTab === 'history' && (
             <div className="pb-20">
                 <HistoryPanel onRestore={handleRestoreHistory} />

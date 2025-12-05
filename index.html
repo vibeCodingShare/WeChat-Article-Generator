@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -23,10 +24,18 @@
             key: function(i) { return Object.keys(data)[i] || null; },
             get length() { return Object.keys(data).length; }
           };
-          // Override global storage objects
+          
           try {
-            Object.defineProperty(window, 'localStorage', { value: mock, writable: true });
-            Object.defineProperty(window, 'sessionStorage', { value: mock, writable: true });
+            // Check if property is configurable before attempting definition
+            var desc = Object.getOwnPropertyDescriptor(window, 'localStorage');
+            if (!desc || desc.configurable) {
+                Object.defineProperty(window, 'localStorage', { value: mock, writable: true });
+            }
+            
+            var descSession = Object.getOwnPropertyDescriptor(window, 'sessionStorage');
+            if (!descSession || descSession.configurable) {
+                 Object.defineProperty(window, 'sessionStorage', { value: mock, writable: true });
+            }
           } catch(err) {
              console.error('Failed to install storage polyfill', err);
           }
