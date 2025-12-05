@@ -28,16 +28,21 @@ const DEFAULT_AUDIENCE: TargetAudience = {
 // Prevents "Access to storage is not allowed" errors in restricted environments (e.g. Vercel, iframes, incognito)
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
+    if (typeof window === 'undefined') return null;
     try {
-      return localStorage.getItem(key);
+      // Accessing the property itself can throw in strict blocking modes
+      const storage = window.localStorage;
+      return storage ? storage.getItem(key) : null;
     } catch (e) {
       console.warn(`LocalStorage access denied for key "${key}"`);
       return null;
     }
   },
   setItem: (key: string, value: string): void => {
+    if (typeof window === 'undefined') return;
     try {
-      localStorage.setItem(key, value);
+      const storage = window.localStorage;
+      if (storage) storage.setItem(key, value);
     } catch (e) {
       console.warn(`LocalStorage write denied for key "${key}"`);
     }
