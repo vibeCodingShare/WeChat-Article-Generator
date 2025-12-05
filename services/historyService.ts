@@ -6,6 +6,7 @@ import { HistoryItem } from '../types';
 export const saveHistoryItem = async (item: Omit<HistoryItem, 'id' | 'timestamp'>) => {
   const db = await getDb();
   if (!db) {
+      // Graceful degradation: If DB is blocked, just don't save history. App continues working.
       console.warn("Storage is disabled. History item not saved.");
       return;
   }
