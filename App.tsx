@@ -24,6 +24,26 @@ const DEFAULT_AUDIENCE: TargetAudience = {
   goals: "解决当下的焦虑，寻找提效黑科技，探索 AI 带来的新可能性（副业/转型）。"
 };
 
+// --- Safe Storage Helper ---
+// Prevents "Access to storage is not allowed" errors in restricted environments (e.g. Vercel, iframes, incognito)
+const safeLocalStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      console.warn(`LocalStorage access denied for key "${key}"`);
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn(`LocalStorage write denied for key "${key}"`);
+    }
+  }
+};
+
 const App: React.FC = () => {
   // --- State Management ---
   const [activeTab, setActiveTab] = useState<'generate' | 'persona' | 'history'>('generate');
@@ -35,7 +55,7 @@ const App: React.FC = () => {
   
   // LLM Settings with persistence
   const [llmSettings, setLlmSettings] = useState<LLMSettings>(() => {
-      const saved = localStorage.getItem('inkflow_settings');
+      const saved = safeLocalStorage.getItem('inkflow_settings');
       if (saved) {
           try {
               return JSON.parse(saved);
@@ -75,7 +95,7 @@ const App: React.FC = () => {
 
   // Save settings on change
   useEffect(() => {
-      localStorage.setItem('inkflow_settings', JSON.stringify(llmSettings));
+      safeLocalStorage.setItem('inkflow_settings', JSON.stringify(llmSettings));
   }, [llmSettings]);
 
   // BYOK Safety Check: Auto-open settings if key is missing
@@ -95,24 +115,24 @@ const App: React.FC = () => {
 
   // Persona & Audience Defaults with Persistence
   const [persona, setPersona] = useState<PersonaConfig>(() => {
-    const saved = localStorage.getItem('inkflow_persona');
+    const saved = safeLocalStorage.getItem('inkflow_persona');
     if (saved) return JSON.parse(saved);
     return DEFAULT_PERSONA;
   });
 
   const [audience, setAudience] = useState<TargetAudience>(() => {
-    const saved = localStorage.getItem('inkflow_audience');
+    const saved = safeLocalStorage.getItem('inkflow_audience');
     if (saved) return JSON.parse(saved);
     return DEFAULT_AUDIENCE;
   });
 
   // Save Persona/Audience on change
   useEffect(() => {
-    localStorage.setItem('inkflow_persona', JSON.stringify(persona));
+    safeLocalStorage.setItem('inkflow_persona', JSON.stringify(persona));
   }, [persona]);
 
   useEffect(() => {
-    localStorage.setItem('inkflow_audience', JSON.stringify(audience));
+    safeLocalStorage.setItem('inkflow_audience', JSON.stringify(audience));
   }, [audience]);
 
 
@@ -215,8 +235,8 @@ const App: React.FC = () => {
     setAudience(newAudience);
 
     // 3. Force LocalStorage update immediately
-    localStorage.setItem('inkflow_persona', JSON.stringify(newPersona));
-    localStorage.setItem('inkflow_audience', JSON.stringify(newAudience));
+    safeLocalStorage.setItem('inkflow_persona', JSON.stringify(newPersona));
+    safeLocalStorage.setItem('inkflow_audience', JSON.stringify(newAudience));
     
     // 4. Force Remount of PersonaPanel
     setFormKey(prev => prev + 1);

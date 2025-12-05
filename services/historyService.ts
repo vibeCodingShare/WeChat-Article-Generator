@@ -4,6 +4,10 @@ import { HistoryItem } from '../types';
 
 // Omit ID because Dexie will auto-generate it (or we generate it, but handled flexibly)
 export const saveHistoryItem = async (item: Omit<HistoryItem, 'id' | 'timestamp'>) => {
+  if (!db) {
+      console.warn("Storage is disabled. History item not saved.");
+      return;
+  }
   try {
     const newItem: HistoryItem = {
       ...item,
@@ -34,6 +38,7 @@ export const saveHistoryItem = async (item: Omit<HistoryItem, 'id' | 'timestamp'
 };
 
 export const getHistory = async (): Promise<HistoryItem[]> => {
+  if (!db) return [];
   try {
     // Return sorted by newest first
     return await db.history.orderBy('timestamp').reverse().toArray();
@@ -44,6 +49,7 @@ export const getHistory = async (): Promise<HistoryItem[]> => {
 };
 
 export const deleteHistoryItem = async (id: string) => {
+  if (!db) return [];
   try {
     await db.history.delete(id);
     return await getHistory(); // Return updated list
@@ -54,5 +60,10 @@ export const deleteHistoryItem = async (id: string) => {
 };
 
 export const clearHistory = async () => {
-    await db.history.clear();
+    if (!db) return;
+    try {
+        await db.history.clear();
+    } catch (e) {
+        console.error("Failed to clear history", e);
+    }
 };

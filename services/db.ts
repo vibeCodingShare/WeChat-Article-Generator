@@ -1,3 +1,4 @@
+
 import Dexie, { Table } from 'dexie';
 import { HistoryItem } from '../types';
 
@@ -14,4 +15,14 @@ export class InkFlowDatabase extends Dexie {
   }
 }
 
-export const db = new InkFlowDatabase();
+// Safely initialize DB. If environment (e.g. Vercel Preview / Incognito) blocks access,
+// db will be undefined, but the app won't crash on import.
+let dbInstance: InkFlowDatabase | undefined;
+
+try {
+  dbInstance = new InkFlowDatabase();
+} catch (e) {
+  console.warn("IndexedDB initialization failed. History features will be disabled.", e);
+}
+
+export const db = dbInstance;
