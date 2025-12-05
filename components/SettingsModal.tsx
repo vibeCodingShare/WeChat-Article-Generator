@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { LLMSettings, LLMProvider } from '../types';
 import { X, Save, Server, Key, Cpu, ShieldCheck, Lock } from 'lucide-react';
@@ -54,22 +55,22 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, settings, onSave }) =
   const currentConfig = localSettings.configs[activeTab];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-0 md:p-4">
+      <div className="bg-white w-full h-full md:h-auto md:w-full md:max-w-lg md:rounded-xl shadow-2xl overflow-hidden flex flex-col md:max-h-[90vh]">
         
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div className="px-4 md:px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <Server className="w-5 h-5 text-indigo-600" />
                 Model Settings
             </h2>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
+            <button onClick={onClose} className="p-2 -mr-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-200 transition-colors">
+                <X className="w-6 h-6" />
             </button>
         </div>
 
         {/* Security Alert (BYOK Pattern) */}
-        <div className="bg-blue-50 border-b border-blue-100 px-6 py-3 flex items-start gap-3">
+        <div className="bg-blue-50 border-b border-blue-100 px-4 md:px-6 py-3 flex items-start gap-3 shrink-0">
             <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
             <div>
                 <h4 className="text-xs font-bold text-blue-800 uppercase tracking-wide">Secure Local Storage</h4>
@@ -81,15 +82,15 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, settings, onSave }) =
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
             
             {/* Provider Tabs */}
-            <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+            <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">
                 {providers.map(p => (
                     <button
                         key={p.id}
                         onClick={() => setActiveTab(p.id)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0 ${
                             activeTab === p.id 
                             ? 'bg-indigo-600 text-white shadow-md' 
                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -113,7 +114,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, settings, onSave }) =
                             type="text" 
                             value={currentConfig.baseUrl}
                             onChange={(e) => handleConfigChange('baseUrl', e.target.value)}
-                            className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-600"
+                            className="w-full pl-9 pr-3 py-3 md:py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-600"
                             placeholder={activeTab === 'gemini' ? '(Not required for Gemini SDK)' : 'https://api.example.com/v1'}
                             disabled={activeTab === 'gemini'}
                         />
@@ -135,7 +136,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, settings, onSave }) =
                             type="password" 
                             value={currentConfig.apiKey}
                             onChange={(e) => handleConfigChange('apiKey', e.target.value)}
-                            className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-600"
+                            className="w-full pl-9 pr-3 py-3 md:py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-600"
                             placeholder="sk-..."
                             autoComplete="off"
                         />
@@ -155,7 +156,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, settings, onSave }) =
                             type="text" 
                             value={currentConfig.modelName}
                             onChange={(e) => handleConfigChange('modelName', e.target.value)}
-                            className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-600"
+                            className="w-full pl-9 pr-3 py-3 md:py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-mono text-slate-600"
                             placeholder="e.g. gpt-4o"
                         />
                     </div>
@@ -165,7 +166,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, settings, onSave }) =
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 shrink-0 pb-safe">
             <button 
                 onClick={onClose}
                 className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
@@ -177,7 +178,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, settings, onSave }) =
                 className="px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-md transition-all flex items-center gap-2"
             >
                 <Save className="w-4 h-4" />
-                Save & Use {activeTab === 'gemini' ? 'Gemini' : activeTab === 'deepseek' ? 'DeepSeek' : 'Model'}
+                Save Settings
             </button>
         </div>
 

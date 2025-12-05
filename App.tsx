@@ -8,7 +8,7 @@ import HistoryPanel from './components/HistoryPanel';
 import SettingsModal from './components/SettingsModal';
 import { generateArticle } from './services/llmService';
 import { saveHistoryItem } from './services/historyService';
-import { Sparkles, ArrowRight, Settings2, RefreshCw, Layers, UserCircle, History, Settings } from 'lucide-react';
+import { Sparkles, ArrowRight, Settings2, RefreshCw, Layers, UserCircle, History, Settings, PenTool } from 'lucide-react';
 
 // --- Constants ---
 const DEFAULT_PERSONA: PersonaConfig = {
@@ -59,7 +59,6 @@ const safeLocalStorage = {
   getItem: (key: string): string | null => {
     try {
       if (typeof window === 'undefined') return null;
-      // Defensive property access
       const storage = window.localStorage;
       return storage ? storage.getItem(key) : null;
     } catch (e) {
@@ -83,17 +82,16 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'generate' | 'persona' | 'history'>('generate');
   const [showSettings, setShowSettings] = useState(false);
   
-  // Use a counter to guarantee uniqueness for force-remounting components
   const [formKey, setFormKey] = useState(0); 
   const [editorKey, setEditorKey] = useState(0);
   
-  // 1. Initialize with Defaults (Prevents Crash on Render)
+  // 1. Initialize with Defaults
   const [llmSettings, setLlmSettings] = useState<LLMSettings>(DEFAULT_SETTINGS);
   const [persona, setPersona] = useState<PersonaConfig>(DEFAULT_PERSONA);
   const [audience, setAudience] = useState<TargetAudience>(DEFAULT_AUDIENCE);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // 2. Hydrate from Storage (Runs after Mount, safely caught)
+  // 2. Hydrate from Storage
   useEffect(() => {
     try {
         const savedSettings = safeLocalStorage.getItem('inkflow_settings');
@@ -124,8 +122,7 @@ const App: React.FC = () => {
       if (isLoaded) safeLocalStorage.setItem('inkflow_audience', JSON.stringify(audience));
   }, [audience, isLoaded]);
 
-
-  // BYOK Safety Check: Auto-open settings if key is missing (Only after load)
+  // BYOK Safety Check
   useEffect(() => {
       if (!isLoaded) return;
       if (llmSettings.activeProvider === 'gemini') return;
@@ -141,20 +138,14 @@ const App: React.FC = () => {
   // Content Input
   const [sourceText, setSourceText] = useState("");
   const [images, setImages] = useState<ImageAttachment[]>([]);
-  
-  // Generation Settings
   const [customInstructions, setCustomInstructions] = useState("");
-  
-  // Output
   const [generatedContent, setGeneratedContent] = useState("");
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // --- Handlers ---
-
   const handleGenerate = async () => {
     if (!sourceText && images.length === 0) {
-      setErrorMsg("Please provide some text or images as source material.");
+      setErrorMsg("Please provide some text or images.");
       return;
     }
 
@@ -163,13 +154,20 @@ const App: React.FC = () => {
     
     if (!isGemini && !currentKey) {
         setShowSettings(true);
-        setErrorMsg("Please enter your API Key in Settings to proceed.");
+        setErrorMsg("Please enter your API Key in Settings.");
         return;
     }
 
     setErrorMsg("");
     setStatus(AppStatus.GENERATING);
     setActiveTab('generate');
+    
+    // Scroll to result on mobile after clicking generate
+    if (window.innerWidth < 1024) {
+        setTimeout(() => {
+            document.getElementById('result-view')?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+    }
 
     try {
       const result = await generateArticle(
@@ -220,21 +218,12 @@ const App: React.FC = () => {
   const handleResetDefaults = () => {
     const newPersona = JSON.parse(JSON.stringify(DEFAULT_PERSONA));
     const newAudience = JSON.parse(JSON.stringify(DEFAULT_AUDIENCE));
-    
     setPersona(newPersona);
     setAudience(newAudience);
-
-    // Update storage directly as well
     safeLocalStorage.setItem('inkflow_persona', JSON.stringify(newPersona));
     safeLocalStorage.setItem('inkflow_audience', JSON.stringify(newAudience));
-    
     setFormKey(prev => prev + 1);
   };
-
-  if (!isLoaded) {
-      // Optional: Render a loading skeleton or just the default app state
-      // Rendering app state immediately is usually better for perceived performance
-  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans">
@@ -246,54 +235,47 @@ const App: React.FC = () => {
         onSave={setLlmSettings}
       />
 
-      <header className="bg-white border-b border-slate-200 h-16 shrink-0 flex items-center justify-between px-6 z-30 shadow-sm sticky top-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-indigo-200 shadow-lg">
+      {/* --- Desktop Header --- */}
+      <header className="bg-white border-b border-slate-200 h-16 shrink-0 flex items-center justify-between px-4 md:px-6 z-30 shadow-sm sticky top-0">
+        <div className="flex items-center gap-2 md:gap-3">
+          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-indigo-200 shadow-lg shrink-0">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">InkFlow AI</h1>
+            <h1 className="text-lg md:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600 truncate max-w-[150px] md:max-w-none">
+                InkFlow AI
+            </h1>
           </div>
         </div>
 
-        <nav className="flex bg-slate-100 p-1 rounded-lg">
-            <button
-                onClick={() => setActiveTab('generate')}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeTab === 'generate' 
-                    ? 'bg-white text-indigo-600 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-            >
-                <Layers className="w-4 h-4" />
-                Generate
-            </button>
-            <button
-                onClick={() => setActiveTab('persona')}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeTab === 'persona' 
-                    ? 'bg-white text-indigo-600 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-            >
-                <UserCircle className="w-4 h-4" />
-                Persona
-            </button>
-            <button
-                onClick={() => setActiveTab('history')}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeTab === 'history' 
-                    ? 'bg-white text-indigo-600 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-            >
-                <History className="w-4 h-4" />
-                History
-            </button>
+        {/* Desktop Nav */}
+        <nav className="hidden md:flex bg-slate-100 p-1 rounded-lg">
+            {[
+                { id: 'generate', icon: Layers, label: 'Generate' },
+                { id: 'persona', icon: UserCircle, label: 'Persona' },
+                { id: 'history', icon: History, label: 'History' }
+            ].map((tab) => (
+                <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                        activeTab === tab.id 
+                        ? 'bg-white text-indigo-600 shadow-sm' 
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                >
+                    <tab.icon className="w-4 h-4" />
+                    {tab.label}
+                </button>
+            ))}
         </nav>
         
-        <div className="w-64 flex justify-end items-center gap-4">
-             {status === AppStatus.ERROR && <span className="text-red-500 text-sm font-medium animate-pulse truncate" title={errorMsg}>{errorMsg}</span>}
+        <div className="flex justify-end items-center gap-2 md:gap-4">
+             {status === AppStatus.ERROR && (
+                <span className="text-red-500 text-xs font-medium animate-pulse truncate max-w-[100px] md:max-w-[200px]" title={errorMsg}>
+                    {errorMsg}
+                </span>
+             )}
              
              <button 
                 onClick={() => setShowSettings(true)}
@@ -305,12 +287,15 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-[1280px] mx-auto p-6">
+      {/* --- Main Content Area --- */}
+      <main className="flex-1 w-full max-w-[1280px] mx-auto p-4 md:p-6 pb-24 md:pb-6">
         
         {activeTab === 'generate' && (
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-6 md:gap-8">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-auto">
-                    <div className="lg:col-span-8 h-[500px] lg:h-[600px]">
+                    
+                    {/* Left: Input (Adaptive Height) */}
+                    <div className="lg:col-span-8 h-[50vh] min-h-[400px] lg:h-[600px]">
                         <ContentInput 
                             key={editorKey}
                             sourceText={sourceText} 
@@ -320,30 +305,32 @@ const App: React.FC = () => {
                         />
                     </div>
                     
-                    <div className="lg:col-span-4 h-[500px] lg:h-[600px] flex flex-col">
-                        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm h-full flex flex-col">
+                    {/* Right: Controls (Stacked on Mobile) */}
+                    <div className="lg:col-span-4 flex flex-col gap-4">
+                        <div className="bg-white rounded-xl border border-slate-200 p-4 md:p-5 shadow-sm flex flex-col gap-4">
                             
-                            <div className="mb-4 p-2 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
+                            <div className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-100">
                                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Model</span>
-                                <span className="text-xs font-bold text-indigo-600 flex items-center gap-1">
+                                <span className="text-xs font-bold text-indigo-600 flex items-center gap-1 truncate max-w-[120px]">
                                     {llmSettings.configs[llmSettings.activeProvider].modelName}
-                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0"></span>
                                 </span>
                             </div>
 
-                            <div className="flex items-center gap-2 mb-3 text-slate-700 shrink-0">
-                                <Settings2 className="w-4 h-4" />
-                                <span className="text-xs font-bold uppercase tracking-wider">Additional Instructions</span>
+                            <div>
+                                <div className="flex items-center gap-2 mb-2 text-slate-700">
+                                    <Settings2 className="w-3.5 h-3.5" />
+                                    <span className="text-xs font-bold uppercase tracking-wider">Instructions</span>
+                                </div>
+                                <textarea 
+                                    value={customInstructions}
+                                    onChange={(e) => setCustomInstructions(e.target.value)}
+                                    placeholder="Add specific requirements (e.g. word count, tone adjustment)..."
+                                    className="w-full text-sm p-3 bg-slate-50 border border-slate-200 rounded-lg resize-none outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all min-h-[100px] lg:min-h-[150px]"
+                                />
                             </div>
                             
-                            <textarea 
-                                value={customInstructions}
-                                onChange={(e) => setCustomInstructions(e.target.value)}
-                                placeholder="E.g., Make it 2000 words, focus on the second point, keep it humorous..."
-                                className="flex-1 w-full text-sm p-3 bg-slate-50 border border-slate-200 rounded-lg resize-none mb-4 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all leading-relaxed min-h-[150px]"
-                            />
-                            
-                            <div className="flex flex-col gap-3 shrink-0">
+                            <div className="flex flex-col gap-3 mt-auto">
                                 <button 
                                     onClick={handleGenerate}
                                     disabled={status === AppStatus.GENERATING}
@@ -368,7 +355,7 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="w-full pb-20">
+                <div id="result-view" className="w-full">
                     <ResultView 
                         content={generatedContent} 
                         isGenerating={status === AppStatus.GENERATING}
@@ -379,9 +366,9 @@ const App: React.FC = () => {
         )}
 
         {activeTab === 'persona' && (
-            <div className="max-w-4xl mx-auto pb-20">
+            <div className="max-w-4xl mx-auto">
                 <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-slate-800">Persona & Audience Settings</h2>
+                    <h2 className="text-xl md:text-2xl font-bold text-slate-800">Persona & Audience</h2>
                     <p className="text-slate-500 text-sm">Define the voice and target of your articles.</p>
                 </div>
                 <PersonaPanel 
@@ -396,12 +383,38 @@ const App: React.FC = () => {
         )}
 
         {activeTab === 'history' && (
-            <div className="pb-20">
+            <div>
                 <HistoryPanel onRestore={handleRestoreHistory} />
             </div>
         )}
 
       </main>
+
+      {/* --- Mobile Bottom Nav --- */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around items-center px-2 py-2 pb-safe z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+         {[
+            { id: 'generate', icon: PenTool, label: 'Create' },
+            { id: 'persona', icon: UserCircle, label: 'Persona' },
+            { id: 'history', icon: History, label: 'History' }
+         ].map((tab) => (
+             <button
+                key={tab.id}
+                onClick={() => {
+                    setActiveTab(tab.id as any);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors w-full ${
+                    activeTab === tab.id 
+                    ? 'text-indigo-600 bg-indigo-50' 
+                    : 'text-slate-400 hover:text-slate-600'
+                }`}
+             >
+                 <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'fill-indigo-600/20' : ''}`} />
+                 <span className="text-[10px] font-medium">{tab.label}</span>
+             </button>
+         ))}
+      </div>
+
     </div>
   );
 };

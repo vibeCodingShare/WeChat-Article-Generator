@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { ImageAttachment } from '../types';
 import { Image as ImageIcon, Link, FileText, X, Eraser, Globe, Loader2, ArrowDownToLine } from 'lucide-react';
@@ -22,9 +23,6 @@ const ContentInput: React.FC<Props> = ({ sourceText, setSourceText, images, setI
   // Sync text from props to editable div
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerText !== sourceText) {
-      // Allow external updates (like History Restore or URL Import) to populate the editor.
-      // We avoid overwriting if the user is typing (isFocused) to prevent cursor jumping,
-      // unless the new value is empty (Clear All) or the editor is currently empty.
       if (!isFocused || sourceText === "" || editorRef.current.innerText.trim() === "") {
         editorRef.current.innerText = sourceText;
       }
@@ -39,8 +37,6 @@ const ContentInput: React.FC<Props> = ({ sourceText, setSourceText, images, setI
 
   const handleFetchUrl = async () => {
     if (!urlInput) return;
-    
-    // Simple validation
     let targetUrl = urlInput;
     if (!targetUrl.startsWith('http')) {
         targetUrl = 'https://' + targetUrl;
@@ -48,23 +44,18 @@ const ContentInput: React.FC<Props> = ({ sourceText, setSourceText, images, setI
 
     setIsFetching(true);
     try {
-        // Use r.jina.ai as a bridge to get Markdown friendly content from a URL
-        // This solves the "Hallucination" issue by providing real text content.
         const response = await fetch(`https://r.jina.ai/${targetUrl}`);
         if (!response.ok) throw new Error("Failed to fetch");
-        
         const text = await response.text();
-        
         const separator = sourceText ? "\n\n--- Imported Web Content ---\n\n" : "";
         const newContent = sourceText + separator + `Title: Imported Link (${targetUrl})\n\n` + text;
-        
         setSourceText(newContent);
         if (editorRef.current) {
             editorRef.current.innerText = newContent;
         }
-        setUrlInput(""); // Clear input on success
+        setUrlInput(""); 
     } catch (e) {
-        alert("Could not fetch content from this URL directly. Please copy/paste the content manually.");
+        alert("Could not fetch content from this URL directly. Please copy/paste.");
         console.error(e);
     } finally {
         setIsFetching(false);
@@ -73,13 +64,10 @@ const ContentInput: React.FC<Props> = ({ sourceText, setSourceText, images, setI
 
   const handlePaste = async (e: React.ClipboardEvent) => {
     const items = e.clipboardData.items;
-    let hasHandledImage = false;
-
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       if (item.type.indexOf('image') !== -1) {
         e.preventDefault(); 
-        hasHandledImage = true;
         const file = item.getAsFile();
         if (file) {
           await processAndInsertImage(file);
@@ -92,7 +80,6 @@ const ContentInput: React.FC<Props> = ({ sourceText, setSourceText, images, setI
     try {
       const base64 = await fileToBase64(file);
       const id = `img_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-      
       const newImage: ImageAttachment = {
         id,
         file,
@@ -100,7 +87,6 @@ const ContentInput: React.FC<Props> = ({ sourceText, setSourceText, images, setI
         base64,
         mimeType: file.type
       };
-
       setImages(prev => [...prev, newImage]);
       insertTextAtCursor(`\n[Image Inserted: ${id}]\n`);
       handleInput();
@@ -123,7 +109,7 @@ const ContentInput: React.FC<Props> = ({ sourceText, setSourceText, images, setI
     } else if (editorRef.current) {
         editorRef.current.innerText += text;
     }
-    handleInput(); // Trigger state update
+    handleInput();
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -149,7 +135,7 @@ const ContentInput: React.FC<Props> = ({ sourceText, setSourceText, images, setI
       
       {/* 1. URL Importer Bar */}
       <div className="p-2 border-b border-slate-100 bg-slate-50 flex gap-2 items-center">
-        <div className="relative flex-1">
+        <div className="relative flex-1 min-w-0">
             <Globe className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input 
                 type="text" 
@@ -157,26 +143,26 @@ const ContentInput: React.FC<Props> = ({ sourceText, setSourceText, images, setI
                 onChange={(e) => setUrlInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleFetchUrl()}
                 className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
-                placeholder="Paste URL here to fetch content (e.g., https://mp.weixin.qq.com/...)"
+                placeholder="Paste URL to fetch..."
             />
         </div>
         <button 
             onClick={handleFetchUrl}
             disabled={isFetching || !urlInput}
-            className="px-3 py-1.5 bg-white border border-slate-200 rounded text-xs font-semibold text-slate-700 hover:text-indigo-600 hover:border-indigo-200 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1"
+            className="px-3 py-1.5 bg-white border border-slate-200 rounded text-xs font-semibold text-slate-700 hover:text-indigo-600 hover:border-indigo-200 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1 shrink-0"
         >
             {isFetching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowDownToLine className="w-3.5 h-3.5" />}
-            Import
+            <span className="hidden sm:inline">Import</span>
         </button>
       </div>
 
-      {/* 2. Toolbar */}
-      <div className="p-2 border-b border-slate-100 bg-white flex justify-between items-center shrink-0">
-        <div className="flex items-center gap-2 px-2">
+      {/* 2. Toolbar - Horizontal Scroll on Mobile */}
+      <div className="p-2 border-b border-slate-100 bg-white flex justify-between items-center shrink-0 overflow-x-auto no-scrollbar gap-4">
+        <div className="flex items-center gap-2 px-2 shrink-0">
            <FileText className="w-3.5 h-3.5 text-indigo-600" />
            <h3 className="font-bold text-slate-700 text-xs uppercase tracking-wide">Source Editor</h3>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
             <button 
                 onClick={clearAll}
                 className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
@@ -184,13 +170,13 @@ const ContentInput: React.FC<Props> = ({ sourceText, setSourceText, images, setI
             >
                 <Eraser className="w-4 h-4" />
             </button>
-            <div className="h-5 w-px bg-slate-200 mx-1"></div>
+            <div className="h-5 w-px bg-slate-200 mx-1 self-center"></div>
             <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 text-xs font-semibold bg-indigo-50 border border-indigo-100 px-3 py-1 rounded shadow-sm hover:bg-indigo-100 text-indigo-700 transition-all"
+                className="flex items-center gap-1.5 text-xs font-semibold bg-indigo-50 border border-indigo-100 px-3 py-1 rounded shadow-sm hover:bg-indigo-100 text-indigo-700 transition-all whitespace-nowrap"
             >
                 <ImageIcon className="w-3.5 h-3.5" />
-                Add / Paste Image
+                Add Image
             </button>
             <input 
                 type="file" 
@@ -205,11 +191,11 @@ const ContentInput: React.FC<Props> = ({ sourceText, setSourceText, images, setI
       
       {/* 3. Main Edit Area */}
       <div className="flex-1 flex flex-col relative min-h-0 bg-white">
-        {/* Thumbnails of inserted images */}
+        {/* Thumbnails */}
         {images.length > 0 && (
             <div className="flex flex-wrap gap-2 p-2 bg-slate-50/50 border-b border-slate-100 min-h-[50px] max-h-[100px] overflow-y-auto shrink-0">
                 {images.map((img) => (
-                    <div key={img.id} className="relative group h-10 w-10 bg-white rounded border border-slate-200 shadow-sm overflow-hidden hover:scale-110 transition-transform shrink-0 cursor-help" title={`ID: ${img.id}`}>
+                    <div key={img.id} className="relative group h-10 w-10 bg-white rounded border border-slate-200 shadow-sm overflow-hidden shrink-0">
                         <img src={img.previewUrl} alt="Preview" className="w-full h-full object-cover" />
                         <button 
                             onClick={() => removeImage(img.id)}
@@ -222,7 +208,6 @@ const ContentInput: React.FC<Props> = ({ sourceText, setSourceText, images, setI
             </div>
         )}
 
-        {/* Content Editable */}
         <div 
             ref={editorRef}
             contentEditable
@@ -231,7 +216,7 @@ const ContentInput: React.FC<Props> = ({ sourceText, setSourceText, images, setI
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             className={`flex-1 w-full p-4 outline-none overflow-y-auto text-xs leading-relaxed font-normal text-slate-900 selection:bg-indigo-100 empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent`}
-            data-placeholder="Paste text, import URL, or paste screenshots (Ctrl+V) here..."
+            data-placeholder="Paste text, import URL, or paste screenshots (Ctrl+V)..."
         />
       </div>
       
@@ -239,7 +224,7 @@ const ContentInput: React.FC<Props> = ({ sourceText, setSourceText, images, setI
       <div className="py-1.5 bg-slate-50 border-t border-slate-100 text-[10px] text-slate-500 flex items-center justify-between px-3 shrink-0">
         <div className="flex items-center gap-1.5">
             <Link className="w-3 h-3" />
-            <span>Images tagged as <b>[Image Inserted: ID]</b> will be used by AI.</span>
+            <span className="truncate max-w-[150px] sm:max-w-none">Ref images with <b>[Image Inserted: ID]</b></span>
         </div>
         <div>
             {sourceText.length} chars
