@@ -28,8 +28,10 @@ export const saveHistoryItem = async (item: Omit<HistoryItem, 'id' | 'timestamp'
     // Optional: Keep only last 50 items
     const count = await db.history.count();
     if (count > 50) {
-        const oldest = await db.history.orderBy('timestamp').limit(count - 50).keys();
-        await db.history.bulkDelete(oldest as string[]);
+        // Complex chaining requires matching the mock interface structure
+        // Dexie's real API allows this chaining
+        const keys = await db.history.orderBy('timestamp').limit(count - 50).keys();
+        await db.history.bulkDelete(keys);
     }
   } catch (error) {
     console.error("Failed to save history to IndexedDB:", error);

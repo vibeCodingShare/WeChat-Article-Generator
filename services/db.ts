@@ -1,11 +1,27 @@
 
-import type { Table } from 'dexie';
 import { HistoryItem } from '../types';
 
-// We define the shape via interface, but we don't import the Class value statically
-// to avoid triggering storage access checks at module load time.
+// Define a minimal interface for the Table to avoid importing from 'dexie'
+// This ensures NO static dependency on the library.
+export interface DexieTable<T> {
+  add(item: T): Promise<any>;
+  count(): Promise<number>;
+  orderBy(index: string): {
+    limit(n: number): {
+      keys(): Promise<any[]>;
+    };
+    reverse(): {
+      toArray(): Promise<T[]>;
+    };
+  };
+  bulkDelete(keys: any[]): Promise<void>;
+  toArray(): Promise<T[]>;
+  delete(key: any): Promise<void>;
+  clear(): Promise<void>;
+}
+
 export interface InkFlowDatabaseShape {
-  history: Table<HistoryItem>;
+  history: DexieTable<HistoryItem>;
 }
 
 let dbInstance: any | undefined;
@@ -25,7 +41,11 @@ export const getDb = async (): Promise<InkFlowDatabaseShape | undefined> => {
   // 1. Strict Environment Check
   // In some iframes or server contexts, even checking indexedDB throws errors.
   try {
-      if (typeof window === 'undefined' || !window.indexedDB) {
+      if (typeof window === 'undefined') {
+          return undefined;
+      }
+      // Accessing the property might throw SecurityError
+      if (!window.indexedDB) {
           console.warn("IndexedDB not supported/available.");
           return undefined;
       }
@@ -42,7 +62,7 @@ export const getDb = async (): Promise<InkFlowDatabaseShape | undefined> => {
 
     // 3. Define Schema at Runtime
     class InkFlowDB extends Dexie {
-        history!: Table<HistoryItem>;
+        history!: DexieTable<HistoryItem>;
         constructor() {
             super('InkFlowDB');
             (this as any).version(1).stores({
@@ -53,7 +73,7 @@ export const getDb = async (): Promise<InkFlowDatabaseShape | undefined> => {
 
     // 4. Initialize
     dbInstance = new InkFlowDB();
-    await dbInstance.open();
+    await (dbInstance as any).open();
     
     return dbInstance;
   } catch (e) {

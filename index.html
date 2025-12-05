@@ -4,6 +4,35 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>InkFlow AI</title>
+    <!-- CRITICAL POLYFILL: Must run before any other script -->
+    <script>
+      (function() {
+        try {
+          // Try to access and use storage to see if it throws
+          var x = '__storage_test__';
+          window.localStorage.setItem(x, x);
+          window.localStorage.removeItem(x);
+        } catch (e) {
+          console.warn('InkFlow: Storage access blocked. Using in-memory polyfill to prevent crash.');
+          var data = {};
+          var mock = {
+            setItem: function(k, v) { data[k] = String(v); },
+            getItem: function(k) { return Object.prototype.hasOwnProperty.call(data, k) ? data[k] : null; },
+            removeItem: function(k) { delete data[k]; },
+            clear: function() { data = {}; },
+            key: function(i) { return Object.keys(data)[i] || null; },
+            get length() { return Object.keys(data).length; }
+          };
+          // Override global storage objects
+          try {
+            Object.defineProperty(window, 'localStorage', { value: mock, writable: true });
+            Object.defineProperty(window, 'sessionStorage', { value: mock, writable: true });
+          } catch(err) {
+             console.error('Failed to install storage polyfill', err);
+          }
+        }
+      })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
