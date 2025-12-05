@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { PersonaConfig, TargetAudience, ImageAttachment, LLMSettings, LLMProvider } from '../types';
 import { constructSystemInstruction, constructUserPrompt } from './promptService';
@@ -25,18 +26,13 @@ export const generateArticle = async (
   const provider = settings.activeProvider;
   const config = settings.configs[provider];
 
-  let effectiveApiKey: string;
+  // Logic: Use the API Key from the config object.
+  // The App state initializes this from process.env.API_KEY, or the user enters it manually.
+  // This supports both "Env Var" and "Bring Your Own Key" patterns.
+  const effectiveApiKey = config.apiKey;
 
-  if (provider === 'gemini') {
-    // Guideline: API key must be obtained exclusively from process.env.API_KEY for Gemini.
-    // Assume this variable is pre-configured, valid, and accessible.
-    effectiveApiKey = process.env.API_KEY as string;
-  } else {
-    // For other providers, use the user-configured key
-    if (!config.apiKey) {
-        throw new Error(`API Key for ${provider} is missing. Please check Settings.`);
-    }
-    effectiveApiKey = config.apiKey;
+  if (!effectiveApiKey) {
+    throw new Error(`API Key for ${provider} is missing. Please check Settings.`);
   }
 
   const systemInstruction = constructSystemInstruction(persona, audience, images, customInstructions);
