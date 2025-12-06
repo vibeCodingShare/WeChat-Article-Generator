@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Copy, Check, RefreshCw, Image as ImageIcon, MessageCircle, FileCode, Heading, FileText, AlignLeft } from 'lucide-react';
 import { ImageAttachment } from '../types';
+import { parseGeneratedArticle } from '../services/promptService';
 
 interface Props {
   content: string;
@@ -16,23 +17,7 @@ const ResultView: React.FC<Props> = ({ content, isGenerating, images = [] }) => 
 
   // --- Parser Logic ---
   const parsedContent = useMemo(() => {
-      // Regex with case insensitive flag
-      const titleMatch = content.match(/# TITLE:\s*(.*?)(?=\n|$)/i);
-      const summaryMatch = content.match(/# SUMMARY:\s*(.*?)(?=\n# ARTICLE:|\n# TITLE:|$)/is);
-      // Article matches everything after # ARTICLE:
-      const articleMatch = content.match(/# ARTICLE:\s*([\s\S]*)/i);
-
-      let title = titleMatch ? titleMatch[1].trim() : "";
-      let summary = summaryMatch ? summaryMatch[1].trim() : "";
-      let body = articleMatch ? articleMatch[1].trim() : "";
-
-      // Fallback for when streaming is incomplete or format is missed
-      if (!title && !summary && !body && content) {
-          // If content exists but no markers yet (or legacy format), treat all as body
-          body = content;
-      }
-
-      return { title, summary, body };
+      return parseGeneratedArticle(content);
   }, [content]);
 
   // --- Copy Helpers ---
@@ -45,7 +30,6 @@ const ResultView: React.FC<Props> = ({ content, isGenerating, images = [] }) => 
 
   /**
    * Advanced Formatter for WeChat Official Account
-   * ... (Kept existing styling logic)
    */
   const formatToWeChatHtml = (markdown: string, imgs: ImageAttachment[]) => {
     
@@ -191,9 +175,6 @@ const ResultView: React.FC<Props> = ({ content, isGenerating, images = [] }) => 
     try {
         const html = formatToWeChatHtml(parsedContent.body, images);
         const htmlBlob = new Blob([html], { type: 'text/html' });
-        // Send a simple text fallback to allow pasting into non-rich environments,
-        // but force WeChat to pick up the HTML by being explicit in the ClipboardItem.
-        // Empty text string sometimes forces apps to look for HTML.
         const textBlob = new Blob([" "], { type: 'text/plain' });
         
         await navigator.clipboard.write([
@@ -297,7 +278,6 @@ const ResultView: React.FC<Props> = ({ content, isGenerating, images = [] }) => 
       </div>
 
       {/* 3. Main Article Body */}
-      {/* Removed overflow-hidden from parent to allow sticky child to work reliably. Added rounded-t-xl to toolbar. */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 min-h-[300px]">
         {/* Header/Toolbar */}
         <div className="p-3 border-b border-slate-100 bg-slate-50 flex justify-between items-center sticky top-16 z-20 shadow-sm transition-all rounded-t-xl">
@@ -334,7 +314,6 @@ const ResultView: React.FC<Props> = ({ content, isGenerating, images = [] }) => 
         </div>
 
         {/* Preview Content */}
-        {/* Added prose modifiers to remove default margins from the first element to fix whitespace issues */}
         <div className="p-6 bg-white rounded-b-xl prose prose-sm max-w-none prose-slate prose-headings:font-bold prose-h1:text-xl prose-a:text-indigo-600 prose-img:rounded-lg prose-headings:first:mt-0 prose-p:first:mt-0 prose-img:first:mt-0">
             {isGenerating && !parsedContent.body ? (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400 space-y-4">

@@ -127,3 +127,26 @@ Remember to use the images provided.
 If you see [Image Inserted: "img_id"], output ![Alt]("img_id").
 `;
 };
+
+/**
+ * Shared utility to parse the LLM output into structured sections.
+ * Used by ResultView (display) and HistoryPanel (preview).
+ */
+export const parseGeneratedArticle = (content: string) => {
+    // Regex with case insensitive flag
+    const titleMatch = content.match(/# TITLE:\s*(.*?)(?=\n|$)/i);
+    const summaryMatch = content.match(/# SUMMARY:\s*(.*?)(?=\n# ARTICLE:|\n# TITLE:|$)/is);
+    // Article matches everything after # ARTICLE:
+    const articleMatch = content.match(/# ARTICLE:\s*([\s\S]*)/i);
+
+    let title = titleMatch ? titleMatch[1].trim() : "";
+    let summary = summaryMatch ? summaryMatch[1].trim() : "";
+    let body = articleMatch ? articleMatch[1].trim() : "";
+
+    // Fallback for when streaming is incomplete or format is missed (legacy content)
+    if (!title && !summary && !body && content) {
+        body = content;
+    }
+
+    return { title, summary, body };
+};

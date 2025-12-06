@@ -1,7 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { HistoryItem } from '../types';
 import { getHistory, deleteHistoryItem, clearHistory } from '../services/historyService';
-import { Clock, Trash2, ArrowUpRight, FileText, AlertCircle, Loader2 } from 'lucide-react';
+import { parseGeneratedArticle } from '../services/promptService';
+import { Clock, Trash2, ArrowUpRight, FileText, AlertCircle, Loader2, Heading, AlignLeft, Image as ImageIcon } from 'lucide-react';
 
 interface Props {
   onRestore: (item: HistoryItem) => void;
@@ -11,7 +13,6 @@ const HistoryPanel: React.FC<Props> = ({ onRestore }) => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load history asynchronously
   useEffect(() => {
     const loadData = async () => {
         const data = await getHistory();
@@ -56,7 +57,7 @@ const HistoryPanel: React.FC<Props> = ({ onRestore }) => {
       <div className="flex items-center justify-between mb-6">
          <div>
             <h2 className="text-2xl font-bold text-slate-800">History</h2>
-            <p className="text-slate-500 text-sm">Your previously generated articles (Saved locally).</p>
+            <p className="text-slate-500 text-sm">Your previously generated articles.</p>
          </div>
          <button 
             onClick={handleClear}
@@ -68,19 +69,31 @@ const HistoryPanel: React.FC<Props> = ({ onRestore }) => {
       </div>
 
       <div className="grid gap-4">
-        {history.map((item) => (
+        {history.map((item) => {
+          // Parse content on the fly to show Title/Summary
+          const { title, summary, body } = parseGeneratedArticle(item.generatedContent);
+          
+          return (
           <div key={item.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow group">
             <div className="flex justify-between items-start mb-3">
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <Clock className="w-3.5 h-3.5" />
-                <span>{new Date(item.timestamp).toLocaleString()}</span>
-                <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                <span className="font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{item.personaName}</span>
+              <div className="flex flex-col gap-1">
+                 {title ? (
+                     <h3 className="font-bold text-slate-800 text-base leading-tight">{title}</h3>
+                 ) : (
+                     <span className="text-slate-400 text-sm italic">Untitled Article</span>
+                 )}
+                 <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>{new Date(item.timestamp).toLocaleString()}</span>
+                    <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                    <span className="font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{item.personaName}</span>
+                 </div>
               </div>
-              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              
+              <div className="flex gap-2 shrink-0">
                  <button 
                     onClick={() => handleDelete(item.id)}
-                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100"
                     title="Delete"
                  >
                     <Trash2 className="w-4 h-4" />
@@ -88,42 +101,37 @@ const HistoryPanel: React.FC<Props> = ({ onRestore }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-               {/* Source Preview */}
+            <div className="grid grid-cols-1 gap-4 mb-4">
+               {/* Summary Preview */}
                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <div className="flex items-center gap-1.5 mb-2 text-xs font-bold text-slate-600 uppercase">
-                     <FileText className="w-3 h-3" /> Source
+                   <div className="flex items-center gap-1.5 mb-2 text-xs font-bold text-slate-600 uppercase">
+                     <AlignLeft className="w-3 h-3" /> Summary / Preview
                   </div>
-                  <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed font-mono">
-                     {item.sourceText || <span className="italic opacity-50">No text source (Images only)</span>}
-                  </p>
-               </div>
-
-               {/* Result Preview */}
-               <div className="bg-indigo-50/50 p-3 rounded-lg border border-indigo-100">
-                   <div className="flex items-center gap-1.5 mb-2 text-xs font-bold text-indigo-700 uppercase">
-                     <ArrowUpRight className="w-3 h-3" /> Result
-                  </div>
-                  <p className="text-sm text-slate-700 line-clamp-3 leading-relaxed">
-                      {item.generatedContent.replace(/[#*`]/g, '').substring(0, 150)}...
+                  <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">
+                      {summary || body.substring(0, 150).replace(/[#*`]/g, '') + '...'}
                   </p>
                </div>
             </div>
 
             <div className="flex items-center justify-between border-t border-slate-100 pt-4">
                 <div className="text-xs text-slate-400">
-                   {item.customInstructions ? `Instruction: "${item.customInstructions.substring(0, 30)}..."` : 'No custom instructions'}
+                   {item.images && item.images.length > 0 && (
+                       <span className="flex items-center gap-1">
+                           <ImageIcon className="w-3 h-3" /> {item.images.length} images used
+                       </span>
+                   )}
                 </div>
                 <button 
                     onClick={() => onRestore(item)}
                     className="flex items-center gap-1.5 text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 px-4 py-2 rounded-lg transition-colors shadow-sm"
                 >
-                    Restore to Editor
+                    Restore
                     <ArrowUpRight className="w-4 h-4" />
                 </button>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
       
       <div className="text-center text-xs text-slate-400 flex items-center justify-center gap-1 mt-8">

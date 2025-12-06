@@ -142,14 +142,14 @@ const ContentInput: React.FC<Props> = ({ sourceText, setSourceText, images, setI
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleFetchUrl()}
-                className="w-full pl-9 pr-3 h-9 text-sm bg-white border border-slate-300 rounded-lg shadow-sm text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                className="w-full pl-9 pr-3 h-10 text-sm bg-white border border-slate-300 rounded-lg shadow-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                 placeholder="Paste URL to fetch content..."
             />
         </div>
         <button 
             onClick={handleFetchUrl}
             disabled={isFetching || !urlInput}
-            className="h-9 px-4 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
+            className="h-10 px-4 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
         >
             {isFetching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowDownToLine className="w-3.5 h-3.5" />}
             <span className="hidden sm:inline">Import</span>
