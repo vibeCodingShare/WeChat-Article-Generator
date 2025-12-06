@@ -85,15 +85,27 @@ ${imageManifest || "(No images provided for this session)"}
 
 **Step 1: 深度解析 (Analysis)**
 * Analyze the input. Find the "Hook".
-* Design 3 Viral Titles.
 
 **Step 2: 撰写正文 (Writing - Layout Rules)**
-* **Lead Paragraph**: Start with a strong hook paragraph (2-3 sentences) to grab attention immediately.
-* **Key Insights**: Use **Blockquotes (> quote)** for "Gold Sentences", summaries, or core takeaways. This renders as a highlight card.
-* **Steps/Process**: Use **Ordered Lists (1. Step)** for tutorials or logical steps. This renders as styled number badges.
+* **Key Insights**: Use **Blockquotes (> quote)** for "Gold Sentences", summaries, or core takeaways.
+* **Steps/Process**: Use **Ordered Lists (1. Step)** for tutorials.
 * **Features/Points**: Use **Unordered Lists (- Item)** for checklists.
 * **Section Headers**: Use H2 (##) for main sections.
-* **Length**: 2000-4000 words.
+
+---
+
+## VI. OUTPUT STRUCTURE (STRICT FORMAT)
+
+You must output the content in the following strict format with separators. Do not add any text before the title.
+
+# TITLE: [Generate a Viral WeChat Title here]
+
+# SUMMARY: [Write a concise summary/abstract between 80-110 characters. This is for the WeChat share description. No markdown here, just text.]
+
+# ARTICLE:
+[The Article Body starts here. Use Markdown.
+Start with a strong Lead Paragraph (Hook).
+Then continue with the rest of the article...]
 
 ${customInstructions ? `
 ADDITIONAL INSTRUCTIONS:
@@ -110,7 +122,7 @@ ${content}
 
 ---
 **INSTRUCTION**: 
-Write the article now. 
+Write the article now using the STRICT OUTPUT STRUCTURE (# TITLE, # SUMMARY, # ARTICLE).
 Remember to use the images provided. 
 If you see [Image Inserted: "img_id"], output ![Alt]("img_id").
 `;

@@ -14,7 +14,7 @@ import { Sparkles, ArrowRight, Settings2, RefreshCw, Layers, UserCircle, History
 const DEFAULT_PERSONA: PersonaConfig = {
   name: "Jovi",
   description: "前 360 高级设计专家、UXD Leader、T 型系统架构师、AiCC 创始人。擅长将复杂的 B 端架构思维降维打击，转化为普通人（上班族/小白）能听懂的实操干货。",
-  tone: "通俗且深刻（拒绝堆砌术语，生活化类比）；迭代主义（行动才有结果）；真诚不爹味（热心的技术老友）。",
+  tone: "通俗且深刻（拒绝堆砌术语，生活化类比）；真诚不爹味（热心的技术老友）。",
   background: "拥有专业摄影与 UX 背景，非常注重文章的阅读节奏和图文排版逻辑。核心理念：事情是迭代出来的。"
 };
 
