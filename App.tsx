@@ -318,7 +318,8 @@ const App: React.FC = () => {
       {/* --- Main Content Area --- */}
       <main className="flex-1 w-full max-w-[1280px] mx-auto p-4 md:p-6 pb-24 md:pb-6">
         
-        {activeTab === 'generate' && (
+        {/* Generate Tab: Hidden when inactive to persist state (Input text, Scroll, URL fetch) */}
+        <div className={activeTab === 'generate' ? 'block' : 'hidden'}>
             <div className="flex flex-col gap-6 md:gap-8">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-auto">
                     
@@ -391,7 +392,7 @@ const App: React.FC = () => {
                     />
                 </div>
             </div>
-        )}
+        </div>
 
         {activeTab === 'persona' && (
             <div className="max-w-4xl mx-auto">
