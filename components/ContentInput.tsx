@@ -134,22 +134,22 @@ const ContentInput: React.FC<Props> = ({ sourceText, setSourceText, images, setI
     <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden ring-offset-2 focus-within:ring-2 focus-within:ring-indigo-500/50 transition-all">
       
       {/* 1. URL Importer Bar */}
-      <div className="p-2 border-b border-slate-100 bg-slate-50 flex gap-2 items-center">
-        <div className="relative flex-1 min-w-0">
-            <Globe className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+      <div className="p-3 border-b border-slate-200 bg-slate-50 flex gap-3 items-center">
+        <div className="relative flex-1 min-w-0 group">
+            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
             <input 
                 type="text" 
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleFetchUrl()}
-                className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
-                placeholder="Paste URL to fetch..."
+                className="w-full pl-9 pr-3 h-9 text-sm bg-white border border-slate-300 rounded-lg shadow-sm text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                placeholder="Paste URL to fetch content..."
             />
         </div>
         <button 
             onClick={handleFetchUrl}
             disabled={isFetching || !urlInput}
-            className="px-3 py-1.5 bg-white border border-slate-200 rounded text-xs font-semibold text-slate-700 hover:text-indigo-600 hover:border-indigo-200 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1 shrink-0"
+            className="h-9 px-4 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
         >
             {isFetching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowDownToLine className="w-3.5 h-3.5" />}
             <span className="hidden sm:inline">Import</span>
