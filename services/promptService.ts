@@ -1,26 +1,14 @@
 
 import { PersonaConfig, TargetAudience, ImageAttachment } from '../types';
 
-export const constructSystemInstruction = (
-  persona: PersonaConfig,
-  audience: TargetAudience,
-  images: ImageAttachment[],
-  customInstructions: string
-): string => {
-  
-  // Create a crisp list of available images for the model
-  const imageManifest = images.map((img) => {
-    return `- ID: "${img.id}" (Use this EXACT ID in the image path)`;
-  }).join('\n');
-
-  return `
-# 🚀 Prompt V2.0: Core Instructions & Persona Integration
+// Convert ES6 template literals to {{handlebars}} style for storage/editing
+export const DEFAULT_SYSTEM_PROMPT_TEMPLATE = `# 🚀 Prompt V2.0: Core Instructions & Persona Integration
 
 ---
 
 ## I. 核心系统约束 (Guardrails)
 
-1. **Role**: You are **${persona.name}**. Do not discuss being an AI.
+1. **Role**: You are **{{persona.name}}**. Do not discuss being an AI.
 2. **Goal**: Write a WeChat Official Account (公众号) article based on the INPUT CONTENT.
 3. **Strict Image Policy**: 
    - You act as a Layout Designer. 
@@ -32,14 +20,14 @@ export const constructSystemInstruction = (
 
 ## II. 角色与读者 (Profile)
 
-### 1. You are ${persona.name}
-* **Core**: ${persona.description}
-* **Tone**: ${persona.tone}
-* **Context**: ${persona.background}
+### 1. You are {{persona.name}}
+* **Core**: {{persona.description}}
+* **Tone**: {{persona.tone}}
+* **Context**: {{persona.background}}
 
 ### 2. The Audience
-* **Who**: ${audience.description}
-* **Pain**: ${audience.painPoints}
+* **Who**: {{audience.description}}
+* **Pain**: {{audience.painPoints}}
 
 ---
 
@@ -48,7 +36,7 @@ export const constructSystemInstruction = (
 You have access to the following uploaded images. You **MUST** weave them into the article where they fit the context.
 
 **Available Images (Copy these IDs exactly):**
-${imageManifest || "(No images provided for this session)"}
+{{imageManifest}}
 
 **Rules for Images:**
 1. **Local Images**: If the input text contains \`[Image Inserted: img_xyz]\`, you MUST output \`![Descriptive Alt Text](img_xyz)\` at that location in your final article.
@@ -107,11 +95,51 @@ You must output the content in the following strict format with separators. Do n
 Start with a strong Lead Paragraph (Hook).
 Then continue with the rest of the article...]
 
-${customInstructions ? `
+{{customInstructions}}
+`;
+
+export const constructSystemInstruction = (
+  template: string,
+  persona: PersonaConfig,
+  audience: TargetAudience,
+  images: ImageAttachment[],
+  customInstructions: string
+): string => {
+  
+  // Create a crisp list of available images for the model
+  const imageManifest = images.length > 0 ? images.map((img) => {
+    return `- ID: "${img.id}" (Use this EXACT ID in the image path)`;
+  }).join('\n') : "(No images provided for this session)";
+
+  // Additional instructions block
+  const customBlock = customInstructions ? `
 ADDITIONAL INSTRUCTIONS:
 ${customInstructions}
-` : ''}
-`;
+` : '';
+
+  // Replace placeholders
+  let prompt = template || DEFAULT_SYSTEM_PROMPT_TEMPLATE;
+
+  // Replacement Map
+  const replacements: Record<string, string> = {
+      '{{persona.name}}': persona.name,
+      '{{persona.description}}': persona.description,
+      '{{persona.tone}}': persona.tone,
+      '{{persona.background}}': persona.background,
+      '{{audience.description}}': audience.description,
+      '{{audience.painPoints}}': audience.painPoints,
+      '{{imageManifest}}': imageManifest,
+      '{{customInstructions}}': customBlock
+  };
+
+  // Perform replacements
+  Object.keys(replacements).forEach(key => {
+      // Escape special regex chars in key just in case, though simple string replaceAll is better if supported
+      // Using split/join for global replacement without regex issues
+      prompt = prompt.split(key).join(replacements[key]);
+  });
+
+  return prompt;
 };
 
 export const constructUserPrompt = (content: string) => {

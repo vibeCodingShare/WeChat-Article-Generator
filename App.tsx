@@ -8,7 +8,8 @@ import HistoryPanel from './components/HistoryPanel';
 import SettingsModal from './components/SettingsModal';
 import { generateArticle } from './services/llmService';
 import { saveHistoryItem } from './services/historyService';
-import { Sparkles, ArrowRight, Settings2, RefreshCw, Layers, UserCircle, History, Settings, PenTool, FilePlus } from 'lucide-react';
+import { DEFAULT_SYSTEM_PROMPT_TEMPLATE } from './services/promptService';
+import { Sparkles, ArrowRight, Settings2, RefreshCw, Layers, UserCircle, History, Settings, PenTool, FilePlus, ArrowUp } from 'lucide-react';
 
 // --- Constants ---
 const DEFAULT_PERSONA: PersonaConfig = {
@@ -26,6 +27,7 @@ const DEFAULT_AUDIENCE: TargetAudience = {
 
 const DEFAULT_SETTINGS: LLMSettings = {
     activeProvider: 'gemini',
+    systemPromptTemplate: DEFAULT_SYSTEM_PROMPT_TEMPLATE,
     configs: {
         gemini: {
             provider: 'gemini', enabled: true, 
@@ -81,6 +83,7 @@ const App: React.FC = () => {
   // --- State Management ---
   const [activeTab, setActiveTab] = useState<'generate' | 'persona' | 'history'>('generate');
   const [showSettings, setShowSettings] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   
   const [formKey, setFormKey] = useState(0); 
   const [editorKey, setEditorKey] = useState(0);
@@ -95,7 +98,14 @@ const App: React.FC = () => {
   useEffect(() => {
     try {
         const savedSettings = safeLocalStorage.getItem('inkflow_settings');
-        if (savedSettings) setLlmSettings(JSON.parse(savedSettings));
+        if (savedSettings) {
+            const parsed = JSON.parse(savedSettings);
+            // Backwards compatibility for System Prompt
+            if (!parsed.systemPromptTemplate) {
+                parsed.systemPromptTemplate = DEFAULT_SYSTEM_PROMPT_TEMPLATE;
+            }
+            setLlmSettings(parsed);
+        }
 
         const savedPersona = safeLocalStorage.getItem('inkflow_persona');
         if (savedPersona) setPersona(JSON.parse(savedPersona));
@@ -121,6 +131,19 @@ const App: React.FC = () => {
   useEffect(() => {
       if (isLoaded) safeLocalStorage.setItem('inkflow_audience', JSON.stringify(audience));
   }, [audience, isLoaded]);
+
+  // 4. Scroll Listener for Back To Top
+  useEffect(() => {
+    const handleScroll = () => {
+        if (window.scrollY > 300) {
+            setShowBackToTop(true);
+        } else {
+            setShowBackToTop(false);
+        }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // BYOK Safety Check
   useEffect(() => {
@@ -242,8 +265,12 @@ const App: React.FC = () => {
     setFormKey(prev => prev + 1);
   };
 
+  const scrollToTop = () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans">
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans relative">
       
       <SettingsModal 
         isOpen={showSettings} 
@@ -418,6 +445,17 @@ const App: React.FC = () => {
         )}
 
       </main>
+
+      {/* Floating Back To Top Button */}
+      <button
+        onClick={scrollToTop}
+        className={`fixed bottom-20 md:bottom-8 right-4 md:right-8 p-3 bg-indigo-600 text-white rounded-full shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:scale-105 transition-all duration-300 z-40 flex items-center justify-center ${
+            showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
+        }`}
+        aria-label="Back to Top"
+      >
+        <ArrowUp className="w-5 h-5" />
+      </button>
 
       {/* --- Mobile Bottom Nav --- */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around items-center px-2 py-2 pb-safe z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">

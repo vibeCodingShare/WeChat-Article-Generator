@@ -57,4 +57,5 @@ export interface ModelConfig {
 export interface LLMSettings {
   activeProvider: LLMProvider;
   configs: Record<LLMProvider, ModelConfig>;
+  systemPromptTemplate: string; // New field for customizable system prompt
 }

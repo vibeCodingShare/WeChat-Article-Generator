@@ -35,7 +35,9 @@ export const generateArticle = async (
     throw new Error(`API Key for ${provider} is missing. Please check Settings.`);
   }
 
-  const systemInstruction = constructSystemInstruction(persona, audience, images, customInstructions);
+  // Use the systemPromptTemplate from settings, or fall back to default if somehow missing
+  const template = settings.systemPromptTemplate || '';
+  const systemInstruction = constructSystemInstruction(template, persona, audience, images, customInstructions);
   const userPrompt = constructUserPrompt(content);
 
   switch (provider) {
