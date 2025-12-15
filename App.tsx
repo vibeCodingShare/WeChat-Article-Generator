@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { PersonaConfig, TargetAudience, ImageAttachment, AppStatus, HistoryItem, LLMSettings } from './types';
 import PersonaPanel from './components/PersonaPanel';
@@ -8,10 +7,11 @@ import HistoryPanel from './components/HistoryPanel';
 import SettingsModal from './components/SettingsModal';
 import { generateArticle } from './services/llmService';
 import { saveHistoryItem } from './services/historyService';
-import { DEFAULT_SYSTEM_PROMPT_TEMPLATE } from './services/promptService';
+import { DEFAULT_SYSTEM_PROMPT_TEMPLATE, constructSystemInstruction } from './services/promptService';
 import { Sparkles, ArrowRight, Settings2, RefreshCw, Layers, UserCircle, History, Settings, PenTool, FilePlus, ArrowUp } from 'lucide-react';
 
 // --- Constants ---
+
 const DEFAULT_PERSONA: PersonaConfig = {
   name: "Jovi",
   description: "前 360 高级设计专家、UXD Leader、T 型系统架构师、AiCC 创始人。擅长将复杂的 B 端架构思维降维打击，转化为普通人（上班族/小白）能听懂的实操干货。",
@@ -24,6 +24,39 @@ const DEFAULT_AUDIENCE: TargetAudience = {
   painPoints: "效率低、担心被 AI 取代、寻找副业机会、职场焦虑。",
   goals: "解决当下的焦虑，寻找提效黑科技，探索 AI 带来的新可能性（副业/转型）。"
 };
+
+// --- Dynamic Versioning Logic ---
+// Generates a build version by hashing the SOURCE CODE of key components and services.
+// This allows the version to "auto-increment" (change) whenever logic in these files is updated.
+const generateBuildVersion = () => {
+    try {
+        const signatureParts = [
+            DEFAULT_SYSTEM_PROMPT_TEMPLATE,           // 1. Core Config (Prompt)
+            JSON.stringify(DEFAULT_PERSONA),          // 2. Core Config (Persona)
+            generateArticle.toString(),               // 3. Service Logic (LLM)
+            constructSystemInstruction.toString(),    // 4. Service Logic (Prompt Builder)
+            ResultView.toString(),                    // 5. Component Logic (Output)
+            ContentInput.toString()                   // 6. Component Logic (Input)
+        ];
+        
+        const signature = signatureParts.join('');
+        
+        let hash = 0;
+        for (let i = 0; i < signature.length; i++) {
+            const char = signature.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        
+        // Use modulo 1000 to keep it a clean 3-digit number
+        const code = String(Math.abs(hash) % 1000).padStart(3, '0');
+        return `v1.0.${code}`;
+    } catch (e) {
+        return "v1.0.dev";
+    }
+};
+
+const APP_VERSION = generateBuildVersion();
 
 const DEFAULT_SETTINGS: LLMSettings = {
     activeProvider: 'gemini',
@@ -285,10 +318,13 @@ const App: React.FC = () => {
           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-indigo-200 shadow-lg shrink-0">
             <Sparkles className="w-5 h-5" />
           </div>
-          <div>
-            <h1 className="text-lg md:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600 truncate max-w-[150px] md:max-w-none">
+          <div className="flex flex-col justify-center">
+            <h1 className="text-lg md:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600 truncate max-w-[150px] md:max-w-none leading-none mb-0.5">
                 InkFlow AI
             </h1>
+            <span className="text-[9px] text-slate-400 font-mono leading-none tracking-tight opacity-70">
+                {APP_VERSION}
+            </span>
           </div>
         </div>
 
